@@ -1,9 +1,6 @@
 require 'rubygems'
 require 'bundler/setup'
 
-orm = ENV['BUNDLE_GEMFILE'].match(/Gemfile\.(.+)\.rb/)
-unless defined?(DOORKEEPER_ORM)
-  DOORKEEPER_ORM = (orm && orm[1]) || :active_record
-end
+DOORKEEPER_ORM = (ENV['orm'] || :active_record).to_sym unless defined?(DOORKEEPER_ORM)
 
-$LOAD_PATH.unshift File.expand_path('../../../../lib', __FILE__)
+$:.unshift File.expand_path('../../../../lib', __FILE__)

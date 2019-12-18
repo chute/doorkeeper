@@ -2,17 +2,12 @@ require 'spec_helper_integration'
 
 module Doorkeeper::OAuth
   describe AuthorizationCodeRequest do
-    let(:server) do
-      double :server,
-             access_token_expires_in: 2.days,
-             refresh_token_enabled?: false,
-             custom_access_token_expires_in: ->(_app) { nil }
-    end
+    let(:server) { double :server, :access_token_expires_in => 2.days, :refresh_token_enabled? => false }
     let(:grant)  { FactoryGirl.create :access_grant }
     let(:client) { grant.application }
 
     subject do
-      AuthorizationCodeRequest.new server, grant, client, redirect_uri: client.redirect_uri
+      AuthorizationCodeRequest.new server, grant, client, :redirect_uri => client.redirect_uri
     end
 
     it 'issues a new token for the client' do
@@ -66,15 +61,6 @@ module Doorkeeper::OAuth
       subject.client = FactoryGirl.create :application
       subject.validate
       expect(subject.error).to eq(:invalid_grant)
-    end
-
-    it 'skips token creation if there is a matching one' do
-      allow(Doorkeeper.configuration).to receive(:reuse_access_token).and_return(true)
-      FactoryGirl.create(:access_token, application_id: client.id,
-        resource_owner_id: grant.resource_owner_id, scopes: grant.scopes.to_s)
-      expect do
-        subject.authorize
-      end.to_not change { Doorkeeper::AccessToken.count }
     end
   end
 end

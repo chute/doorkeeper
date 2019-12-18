@@ -8,12 +8,12 @@ module Doorkeeper
 
     def authorization_request(strategy)
       klass = Request.authorization_strategy strategy
-      klass.new self
+      klass.build self
     end
 
     def token_request(strategy)
       klass = Request.token_strategy strategy
-      klass.new self
+      klass.build self
     end
 
     # TODO: context should be the request
@@ -34,11 +34,11 @@ module Doorkeeper
     end
 
     def current_refresh_token
-      AccessToken.by_refresh_token(parameters[:refresh_token])
+      Doorkeeper::AccessToken.by_refresh_token(parameters[:refresh_token])
     end
 
     def grant
-      AccessGrant.by_token(parameters[:code])
+      Doorkeeper::AccessGrant.authenticate(parameters[:code])
     end
 
     # TODO: Use configuration and evaluate proper context on block

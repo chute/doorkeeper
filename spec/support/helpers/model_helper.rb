@@ -4,7 +4,7 @@ module ModelHelper
   end
 
   def create_resource_owner
-    @resource_owner = User.create!(name: 'Joe', password: 'sekret')
+    @resource_owner = User.create!(:name => "Joe", :password => "sekret")
   end
 
   def authorization_code_exists(options = {})
@@ -37,9 +37,9 @@ module ModelHelper
   end
 
   def access_token_should_have_scopes(*args)
-    grant = Doorkeeper::AccessToken.last
+    grant = Doorkeeper::AccessToken.first
     expect(grant.scopes).to eq(Doorkeeper::OAuth::Scopes.from_array(args))
   end
 end
 
-RSpec.configuration.send :include, ModelHelper
+RSpec.configuration.send :include, ModelHelper, :type => :request

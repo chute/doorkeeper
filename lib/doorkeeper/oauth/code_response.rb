@@ -1,8 +1,8 @@
 module Doorkeeper
   module OAuth
     class CodeResponse
-      include OAuth::Authorization::URIBuilder
-      include OAuth::Helpers
+      include Doorkeeper::OAuth::Authorization::URIBuilder
+      include Doorkeeper::OAuth::Helpers
 
       attr_accessor :pre_auth, :auth, :response_on_fragment
 
@@ -15,22 +15,20 @@ module Doorkeeper
         true
       end
 
+      # TODO: configure the test oauth path?
       def redirect_uri
-        if URIChecker.native_uri? pre_auth.redirect_uri
-          auth.native_redirect
+        if URIChecker.test_uri? pre_auth.redirect_uri
+          "/oauth/authorize/#{auth.token.token}"
         else
           if response_on_fragment
-            uri_with_fragment(
-              pre_auth.redirect_uri,
-              access_token: auth.token.token,
-              token_type: auth.token.token_type,
-              expires_in: auth.token.expires_in,
-              state: pre_auth.state
-            )
+            uri_with_fragment(pre_auth.redirect_uri, {
+              :access_token => auth.token.token,
+              :token_type   => auth.token.token_type,
+              :expires_in   => auth.token.expires_in,
+              :state        => pre_auth.state
+            })
           else
-            uri_with_query pre_auth.redirect_uri,
-                           code: auth.token.token,
-                           state: pre_auth.state
+            uri_with_query pre_auth.redirect_uri, :code => auth.token.token, :state => pre_auth.state
           end
         end
       end

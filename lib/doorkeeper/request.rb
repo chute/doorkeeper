@@ -7,34 +7,24 @@ require 'doorkeeper/request/token'
 
 module Doorkeeper
   module Request
-    module_function
+    extend self
 
-    def authorization_strategy(response_type)
-      get_strategy response_type, authorization_response_types
+    def authorization_strategy(strategy)
+      get_strategy strategy, %w[code token]
     rescue NameError
       raise Errors::InvalidAuthorizationStrategy
     end
 
-    def token_strategy(grant_type)
-      get_strategy grant_type, token_grant_types
+    def token_strategy(strategy)
+      get_strategy strategy, %w[password client_credentials authorization_code refresh_token]
     rescue NameError
       raise Errors::InvalidTokenStrategy
     end
 
-    def get_strategy(grant_or_request_type, available)
-      fail Errors::MissingRequestStrategy unless grant_or_request_type.present?
-      fail NameError unless available.include?(grant_or_request_type.to_s)
-      "Doorkeeper::Request::#{grant_or_request_type.to_s.camelize}".constantize
+    def get_strategy(strategy, available)
+      raise Errors::MissingRequestStrategy unless strategy.present?
+      raise NameError unless available.include?(strategy.to_s)
+      "Doorkeeper::Request::#{strategy.to_s.camelize}".constantize
     end
-
-    def authorization_response_types
-      Doorkeeper.configuration.authorization_response_types
-    end
-    private_class_method :authorization_response_types
-
-    def token_grant_types
-      Doorkeeper.configuration.token_grant_types
-    end
-    private_class_method :token_grant_types
   end
 end

@@ -2,38 +2,25 @@ require 'spec_helper_integration'
 
 module Doorkeeper::OAuth
   describe RefreshTokenRequest do
-    let(:server) do
-      double :server,
-             access_token_expires_in: 2.minutes,
-             custom_access_token_expires_in: -> (_oauth_client) { nil }
-    end
-    let(:refresh_token) do
-      FactoryGirl.create(:access_token, use_refresh_token: true)
-    end
-    let(:client) { refresh_token.application }
-    let(:credentials) { Client::Credentials.new(client.uid, client.secret) }
+    let(:server)         { double :server, :access_token_expires_in => 2.minutes }
+    let!(:refresh_token) { FactoryGirl.create(:access_token, :use_refresh_token => true) }
+    let(:client)         { refresh_token.application }
+    let(:credentials)    { Client::Credentials.new(client.uid, client.secret) }
 
-    subject { RefreshTokenRequest.new server, refresh_token, credentials }
+    subject {
+      RefreshTokenRequest.new server, refresh_token, credentials
+    }
 
     it 'issues a new token for the client' do
-      expect do
+      expect {
         subject.authorize
-      end.to change { client.access_tokens.count }.by(1)
-      expect(client.reload.access_tokens.last.expires_in).to eq(120)
-    end
-
-    it 'issues a new token for the client with custom expires_in' do
-      server = double :server,
-                      access_token_expires_in: 2.minutes,
-                      custom_access_token_expires_in: ->(_oauth_client) { 1234 }
-
-      RefreshTokenRequest.new(server, refresh_token, credentials).authorize
-
-      expect(client.reload.access_tokens.last.expires_in).to eq(1234)
+      }.to change { client.access_tokens.count }.by(1)
     end
 
     it 'revokes the previous token' do
-      expect { subject.authorize }.to change { refresh_token.revoked? }.from(false).to(true)
+      expect {
+        subject.authorize
+      }.to change { refresh_token.revoked? }.from(false).to(true)
     end
 
     it 'requires the refresh token' do
@@ -57,7 +44,7 @@ module Doorkeeper::OAuth
     it 'rejects revoked tokens' do
       refresh_token.revoke
       subject.validate
-      expect(subject.error).to eq(:invalid_grant)
+      expect(subject.error).to eq(:invalid_request)
     end
 
     it 'accepts expired tokens' do
@@ -68,23 +55,25 @@ module Doorkeeper::OAuth
     end
 
     context 'clientless access tokens' do
-      let!(:refresh_token) { FactoryGirl.create(:clientless_access_token, use_refresh_token: true) }
+      let!(:refresh_token) { FactoryGirl.create(:clientless_access_token, :use_refresh_token => true) }
 
-      subject { RefreshTokenRequest.new server, refresh_token, nil }
+      subject {
+        RefreshTokenRequest.new server, refresh_token, nil
+      }
 
       it 'issues a new token without a client' do
-        expect { subject.authorize }.to change { Doorkeeper::AccessToken.count }.by(1)
+        expect {
+          subject.authorize
+        }.to change { Doorkeeper::AccessToken.count }.by(1)
       end
     end
 
     context 'with scopes' do
-      let(:refresh_token) do
-        FactoryGirl.create :access_token,
-                           use_refresh_token: true,
-                           scopes: 'public write'
-      end
+      let!(:refresh_token) { FactoryGirl.create(:access_token, :use_refresh_token => true, :scopes => 'public write') }
       let(:parameters) { {} }
-      subject { RefreshTokenRequest.new server, refresh_token, credentials, parameters }
+      subject {
+        RefreshTokenRequest.new server, refresh_token, credentials, parameters
+      }
 
       it 'transfers scopes from the old token to the new token' do
         subject.authorize
@@ -103,21 +92,7 @@ module Doorkeeper::OAuth
         subject.validate
         expect(subject.error).to eq(:invalid_scope)
       end
-
-      it 'uses params[:scope] in favor of scopes if present (valid)' do
-        parameters[:scopes] = 'public update'
-        parameters[:scope] = 'public'
-        subject.authorize
-        expect(Doorkeeper::AccessToken.last.scopes).to eq([:public])
-      end
-
-      it 'uses params[:scope] in favor of scopes if present (invalid)' do
-        parameters[:scopes] = 'public'
-        parameters[:scope] = 'public update'
-
-        subject.validate
-        expect(subject.error).to eq(:invalid_scope)
-      end
     end
+
   end
 end

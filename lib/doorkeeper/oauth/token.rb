@@ -11,35 +11,9 @@ module Doorkeeper
         end
 
         def from_bearer_authorization(request)
-          pattern = /^Bearer /i
+          pattern = /^Bearer /
           header  = request.authorization
-          token_from_header(header, pattern) if match?(header, pattern)
-        end
-
-        def from_basic_authorization(request)
-          pattern = /^Basic /i
-          header  = request.authorization
-          token_from_basic_header(header, pattern) if match?(header, pattern)
-        end
-
-        private
-
-        def token_from_basic_header(header, pattern)
-          encoded_header = token_from_header(header, pattern)
-          token, _ = decode_basic_credentials(encoded_header)
-          token
-        end
-
-        def decode_basic_credentials(encoded_header)
-          Base64.decode64(encoded_header).split(/:/, 2)
-        end
-
-        def token_from_header(header, pattern)
-          header.gsub pattern, ''
-        end
-
-        def match?(header, pattern)
-          header && header.match(pattern)
+          header.gsub pattern, '' if header && header.match(pattern)
         end
       end
 
@@ -54,9 +28,8 @@ module Doorkeeper
       end
 
       def self.authenticate(request, *methods)
-        if token = from_request(request, *methods)
-          AccessToken.by_token(token)
-        end
+        token = from_request request, *methods
+        Doorkeeper::AccessToken.authenticate(token) if token
       end
     end
   end

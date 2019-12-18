@@ -6,38 +6,26 @@ module Doorkeeper
   module OAuth
     class ClientCredentialsRequest
       class Validation
-        include Validations
-        include OAuth::Helpers
+        include Doorkeeper::Validations
+        include Doorkeeper::OAuth::Helpers
 
-        validate :client, error: :invalid_client
-        validate :scopes, error: :invalid_scope
+        validate :client, :error => :invalid_client
+        validate :scopes, :error => :invalid_scope
 
         def initialize(server, request)
-          @server, @request, @client = server, request, request.client
-
+          @server, @request = server, request
           validate
         end
 
         private
 
         def validate_client
-          @client.present?
+          @request.client.present?
         end
 
         def validate_scopes
-          return true unless @request.scopes.present?
-
-          application_scopes = if @client.present?
-                                 @client.application.scopes
-                               else
-                                 ''
-                               end
-
-          ScopeChecker.valid?(
-            @request.scopes.to_s,
-            @server.scopes,
-            application_scopes
-          )
+          return true unless @request.original_scopes.present?
+          ScopeChecker.valid?(@request.original_scopes, @server.scopes)
         end
       end
     end
